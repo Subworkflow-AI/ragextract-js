@@ -1,10 +1,10 @@
 <h3 align="center">
   <a name="readme-top"></a>
     <img
-        src="https://cdn.subworkflow.ai/marketing/logo-blue-100x100.png"
+        src="https://cdn.subworkflow.ai/marketing/ragextract_logo_241x60.png"
     />
 </h3>
-<h4 align="center" style="font-family:monospace">RAG BACKEND API FOR AI DEVELOPERS</h4>
+<h4 align="center" style="font-family:monospace">OPTIMISE LONG DOCUMENT EXTRACTION</h4>
 <div align="center">
     <a href="https://www.linkedin.com/company/subworkflow-ai">
         <img src="https://img.shields.io/badge/Follow%20on%20LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="Follow on LinkedIn" />
@@ -17,38 +17,36 @@
     </a>
 </div>
 
-# Subworkflow-JS-SDK <img src="https://cdn.subworkflow.ai/marketing/logo-blue-32x32.png" height="24"/>
+# Ragextract-JS <img src="https://cdn.subworkflow.ai/marketing/logo-blue-32x32.png" height="24"/>
 
-The **Subworkflow-JS-SDK** is the official server-side javascript sdk for the [Subworkflow.ai](https://subworkflow.ai) API written in Typescript.
+The **Ragextract-JS** library is the official client/server-side javascript sdk for the [Ragextract API](https://subworkflow.ai/ragextract) written in Typescript.
 
 Note: This sdk is not intended to be used in the browser and doing so may expose your API key to unauthorized use.
 
-Please use this project's [issue tracker](https://github.com/Subworkflow-AI/subworkflow-js-sdk/issues) for any issues and/or support relating to this library. You can also reach out to the team on [our Discord server](https://discord.gg/RCHeCPJnYw).
+Please use this project's [issue tracker](https://github.com/Subworkflow-AI/ragextract-js/issues) for any issues and/or support relating to this library. You can also reach out to the team on [our Discord server](https://discord.gg/RCHeCPJnYw).
 
-## What is Subworkflow.AI
+## What is Ragextract?
 
-Subworkflow.AI is a RAG backend API designed and built to handle document RAG with large documents; where large documents are typically scanned PDFs, 1000+ pages, 300mb+ or a combination thereof. 
+Ragextract is a RAG backend API designed and built to handle document RAG with long and/or large documents; where large documents are typically scanned PDFs, 1000+ pages, 300mb+ or a combination thereof. 
 
-Subworkflow.AI is able to split, index, store and vectorize these documents and provide a simple API to access, filter and search the resulting pages of one or more documents uploaded to the service. The aim is to handle this backend portion of the RAG application so developers can focus on the frontend.
+Ragextract is able to split, convert, index, store and vectorize these documents and provide a simple API to access, filter and search the resulting pages of one or more documents uploaded to the service. The goal is reduce LLM OCR parsing costs by allowing a robust search and retrieval API for documents.
 
-Subworkflow's document processing pipeline is also great for high frequency structured output for smaller documents (<300 page) where it's necessary to perform similar splitting and retrieval for bank statements, contracts and policy documents.
-
-Learn more by visiting our website at [https://subworkflow.ai](https://subworkflow.ai).
+Learn more by visiting our website at [https://subworkflow.ai/ragextract](https://subworkflow.ai/ragextract).
 
 ## Installation
 
 ```
-npm i --save @subworkflow/sdk
+npm i --save @subworkflow/ragextract
 ```
 
 ## Usage
 
-Initialise the client from `@subworkflow/sdk` with your workspace's API key. This will scope all operations to the workspace.
+Initialise the client from `@subworkflow/ragextract` with your workspace's API key. This will scope all operations to the workspace.
 ```typescript
-import { Subworkflow } from '@subworkflow/sdk';
+import { Ragextract } from '@subworkflow/ragextract';
 
-const subworkflow = new Subworkflow({
-    apiKey: '<MY-API-KEY>'
+const subworkflow = new Ragextract({
+    apiKey: '$RAGEXTRACT_API_KEY'
 });
 ```
 ### 1. Extract & Query Usage
@@ -58,10 +56,10 @@ import * as fs from 'fs';
 const fileBuffer = fs.readFileSync('/path/to/file.pdf');
 
 // 1. upload a file to get its dataset
-const dataset = await subworkflow.extract(fileBuffer);
+const dataset = await ragextract.extract(fileBuffer);
 
 // 2. retrieve a selection of pages from dataset
-const results = await subworkflow.datasets.getItems(dataset, {
+const results = await ragextract.datasets.getItems(dataset, {
     row: 'jpg',
     cols: [1,2,3], // omit to retrieve all
     offset: 0,
@@ -96,10 +94,10 @@ const fileBuffer = fs.readFileSync('/path/to/file.pdf');
 
 // 1. upload a file to get its dataset
 // alternatively, use `await datasets.vectorize();` if dataset is alrady extracted
-const dataset = await subworkflow.vectorize(fileBuffer);
+const dataset = await ragextract.vectorize(fileBuffer);
 
 // 2. query the document contextually to return matching pages
-const results = await subworkflow.search({
+const results = await ragextract.search({
     datasets: [dataset],
     query: {
         "text": "Can you find this symbol in the document?",
@@ -143,7 +141,7 @@ console.log(`Pages cited for this answer are: ${results.map(datasetItem => datas
     opts: {
         fileName: string;
         async?: boolean; 
-        expiryInDays?: number;
+        expiresInDays?: number;
         chunkSize?: number; 
         concurrency?: number;
     }
@@ -174,7 +172,7 @@ When a `Job` is returned, you'll have to check the job status for the dataset ma
     opts: {
         fileName: string;
         async?: boolean; 
-        expiryInDays?: number;
+        expiresInDays?: number;
         chunkSize?: number; 
         concurrency?: number;
     }
@@ -236,16 +234,17 @@ When a `Job` is returned, you'll have to check the job status for the dataset ma
 
 ### Datasets Delete
 ```typescript
-.datasets.delete(dataset: Dataset | string): Promise<Dataset | null>
+.datasets.delete(dataset: Dataset | Dataset[] | string | string[]): Promise<boolean | null>
 ```
-* Marks a single dataset for deletion. This is the same as setting an immediate expiry date.
-* Api Reference: https://docs.subworkflow.ai/api-reference/delete-v1-datasets-id
+* Deletes one or more datasets.
+* Due to firing off multiple async "delete" jobs, it's not possible to await until all deletes have completed. If you need to wait, use the jobs list endpoint to check on progress of the jobs.
+* Api Reference: https://docs.subworkflow.ai/api-reference/delete-v1-datasets
 
 **Params**:
-  * **dataset** (Dataset | string) - *Required*. A dataset object or the dataset ID of the requested dataset
+  * **dataset** (Dataset | Dataset[] | string | string[]) - *Required*. One or more dataset object or the dataset ID of the requested dataset
 
 **Returns**
-* `Dataset` (Dataset) - The dataset object.
+* `Boolean` - always true if successful.
 
 ### Dataset Vectorize
 ```typescript
@@ -371,5 +370,4 @@ jobs.cancel(jobId: string): Promise<job | null>
 
 This project repository is licensed under the MIT License (See LICENSE file). Some dependencies may contain a different license so please refer to the relevant repositories for specific licences.
 
-2025 &copy; Subworkflow AI Limited.
-The fastest way to build durable RAG applications.
+2026 &copy; Subworkflow AI Limited.

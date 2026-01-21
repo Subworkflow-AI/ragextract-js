@@ -1,11 +1,11 @@
 import { describe, test, expect, beforeAll } from 'bun:test';
-import { Subworkflow } from '../src';
-import type { Dataset, Job } from '../src/lib/types';
+import { Ragextract } from '../src';
+import type { Dataset } from '../src/lib/types';
 
-const { SUBWORKFLOW_API_KEY } = process.env;
+const { RAGEXTRACT_API_KEY } = process.env;
 
 describe('datasets', () => {
-    const subworkfow = new Subworkflow({ apiKey: SUBWORKFLOW_API_KEY });
+    const subworkfow = new Ragextract({ apiKey: RAGEXTRACT_API_KEY });
     let dataset: Dataset | null;
     beforeAll(async () => {
         const file = Bun.file('./test/assets/small_5.pdf');

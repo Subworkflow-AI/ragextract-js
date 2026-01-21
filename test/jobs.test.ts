@@ -1,10 +1,10 @@
-import { describe, test, expect, beforeAll } from 'bun:test';
-import { Subworkflow } from '../src';
+import { describe, test, expect } from 'bun:test';
+import { Ragextract } from '../src';
 
-const { SUBWORKFLOW_API_KEY } = process.env;
+const { RAGEXTRACT_API_KEY } = process.env;
 
 describe('jobs', () => {
-    const subworkfow = new Subworkflow({ apiKey: SUBWORKFLOW_API_KEY });
+    const subworkfow = new Ragextract({ apiKey: RAGEXTRACT_API_KEY });
 
     test('jobs.list', async () => {
         const actual = await subworkfow.jobs.list();

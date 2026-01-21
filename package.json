@@ -1,6 +1,6 @@
 {
-  "name": "@subworkflow/sdk",
-  "description": "The official Javascript SDK for Subworkflow.ai",
+  "name": "@subworkflow/ragextract",
+  "description": "The official Javascript SDK for Ragextract",
   "version": "0.1.0",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,15 +9,15 @@
   "author": {
     "name": "Subworkflow AI Limited",
     "email": "support@subworkflow.ai",
-    "url": "https://subworkflow.ai"
+    "url": "https://subworkflow.ai/ragextract"
   },
-  "homepage": "https://github.com/Subworkflow-AI/subworkflow-js-sdk",
+  "homepage": "https://github.com/Subworkflow-AI/ragextract-js",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/Subworkflow-AI/subworkflow-js-sdk.git"
+    "url": "git+ssh://git@github.com/Subworkflow-AI/ragextract-js.git"
   },
   "bugs": {
-    "url": "https://github.com/Subworkflow-AI/subworkflow-js-sdk/issues",
+    "url": "https://github.com/Subworkflow-AI/ragextract-js/issues",
     "email": "support@subworkflow.ai"
   },
   "scripts": {

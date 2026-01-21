@@ -15,9 +15,18 @@ export class DatasetsAPI {
         return res.data || null;
     }
 
-    delete = async (dataset: Dataset | string) => {
-        const datasetId = typeof dataset === 'string' ? dataset : dataset.id;
-        const req = await this.api.$delete(`/datasets/${datasetId}`);
+    delete = async (dataset: Dataset | Dataset[] | string | string[]) => {
+        const items = [];
+        if (Array.isArray(dataset)) {
+            items.push(
+                ...dataset.map(item => typeof item !== 'string' ? item.id : item)
+            )
+        } else {
+            items.push(typeof dataset !== 'string' ? dataset.id : dataset);
+        }
+        const req = await this.api.$delete(`/datasets`, {
+            json: { datasetIds: items }
+        });
         const res = await req.json() as ApiResponse<Dataset>;
         if (res.error) throw new Error(res.error);
         return res.data || null;

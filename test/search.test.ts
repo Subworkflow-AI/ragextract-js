@@ -1,14 +1,13 @@
 import { describe, test, expect, beforeAll } from 'bun:test';
-import { Subworkflow } from '../src';
-import type { Dataset, Job } from '../src/lib/types';
+import { Ragextract } from '../src';
 
-const { SUBWORKFLOW_API_KEY } = process.env;
+const { RAGEXTRACT_API_KEY } = process.env;
 
 describe('search', () => {
-    const subworkfow = new Subworkflow({ apiKey: SUBWORKFLOW_API_KEY });
+    const subworkfow = new Ragextract({ apiKey: RAGEXTRACT_API_KEY });
     
     test('search', async () => {
-        const jobs = await subworkfow.jobs.query({ statuses: 'SUCCESS' });
+        const jobs = await subworkfow.jobs.list({ statuses: 'SUCCESS' });
         const vectorizeJob = jobs?.find(job => job.type === 'datasets/vectorize' && job.status === 'SUCCESS');
         if (!vectorizeJob) throw new Error('No available vectorized dataset to test against.');
 

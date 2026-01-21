@@ -6,19 +6,19 @@ import { JobsAPI } from "./lib/jobs/api";
 
 const BASE_URL = 'https://api.subworkflow.ai/v1';
 
-type SubworkflowOpts = {
+type RagextractOpts = {
     apiKey?: string;
     baseUrl?: string;
 }
 
-export class Subworkflow {
+export class Ragextract {
     private api: ApiClient;
     private jobsApi: JobsAPI;
     private uploadApi: UploadAPI;
     private datasetsApi: DatasetsAPI;
     private searchApi: SearchAPI;
 
-    constructor(opts: SubworkflowOpts) {
+    constructor(opts: RagextractOpts) {
         if (!opts?.apiKey) throw('Please add an API Key.');
         const baseUrl = opts.baseUrl
             ? opts.baseUrl.endsWith('/') ? opts.baseUrl.slice(0, -1) : opts.baseUrl
