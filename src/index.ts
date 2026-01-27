@@ -4,7 +4,7 @@ import { UploadAPI } from './lib/upload/api';
 import { SearchAPI } from './lib/search/api';
 import { JobsAPI } from "./lib/jobs/api";
 
-const BASE_URL = 'https://api.subworkflow.ai/v1';
+const BASE_URL = 'https://api.ragextract.com/v1';
 
 type RagextractOpts = {
     apiKey?: string;
