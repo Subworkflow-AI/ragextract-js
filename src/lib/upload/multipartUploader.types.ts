@@ -1,7 +1,11 @@
 
 
 export type UploadSessionStartRequest = {
-    jobType: 'extract' | 'vectorize';
+    /**
+     * `/v1` only, and required there. `/v2` has one ingest verb and does not accept the parameter,
+     * so its uploader omits it — optional here rather than two near-identical request types.
+     */
+    jobType?: 'extract' | 'vectorize';
     fileName: string;
     fileExt: string;
     fileType: string;

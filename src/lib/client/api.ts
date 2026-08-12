@@ -51,7 +51,7 @@ export class ApiClient {
     }
 
     private _fetch = async <T extends Record<string, any>>(
-        method: 'get' | 'post' | 'delete',
+        method: 'get' | 'post' | 'patch' | 'put' | 'delete',
         route: string,
         input?: {
             query?: T,
@@ -144,6 +144,34 @@ export class ApiClient {
         }
     ) => {
         return this._fetch('post',route,input,headers);
+    }
+    // PATCH and PUT exist for /v2, which uses proper verbs where /v1 overloaded POST and DELETE —
+    // a partial update is a PATCH, and setting a cell override is an idempotent PUT.
+    $patch = async <T extends Record<string, any>>(
+        route: string,
+        input?: {
+            query?: T,
+            json?: T,
+            form?: T
+        },
+        headers?: {
+            'Content-Type'?: string;
+        }
+    ) => {
+        return this._fetch('patch',route,input,headers);
+    }
+    $put = async <T extends Record<string, any>>(
+        route: string,
+        input?: {
+            query?: T,
+            json?: T,
+            form?: T
+        },
+        headers?: {
+            'Content-Type'?: string;
+        }
+    ) => {
+        return this._fetch('put',route,input,headers);
     }
     $delete = async <T extends Record<string, any>>(
         route: string,

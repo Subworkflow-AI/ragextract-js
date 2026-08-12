@@ -41,14 +41,79 @@ npm i --save @subworkflow/ragextract
 
 ## Usage
 
-Initialise the client from `@subworkflow/ragextract` with your workspace's API key. This will scope all operations to the workspace.
+Initialise the client from `@subworkflow/ragextract` with your API key.
+
 ```typescript
 import { Ragextract } from '@subworkflow/ragextract';
 
-const subworkflow = new Ragextract({
+const ragextract = new Ragextract({
     apiKey: '$RAGEXTRACT_API_KEY'
 });
 ```
+
+### Two kinds of key, and what each one gets you
+
+**The SDK picks its API version from the key's prefix.** You do not configure it.
+
+| Key | API | Scope |
+| --- | --- | --- |
+| `psk_…` **personal key** | v2 | every workspace you can reach — files, tables, bundles, jobs, search |
+| `sk_…` workspace key | v1 | the one workspace it belongs to — files and search only |
+
+Personal keys are created in **Settings → API keys** and are the recommended choice. Workspace keys
+keep working exactly as before; v1 is frozen, not deprecated.
+
+A personal key can be narrowed to specific workspaces and tables, with read or read-write on each.
+An unscoped key does everything you can do, and follows your permissions if they change.
+
+### v2: working inside a workspace
+
+Every v2 call happens inside a workspace, so name it once and hold on to the handle.
+
+```typescript
+// Which workspaces can this key reach, and at what level?
+const workspaces = await ragextract.workspaces.list();
+
+const ws = ragextract.workspace(workspaces[0].id);
+
+// Upload and ingest. Large files switch to a multipart session automatically.
+const file = await ws.files.upload(new URL('https://example.com/contract.pdf'));
+
+// Extract structured columns across those files.
+const table = await ws.tables.create({ name: 'Contracts' });
+await ws.tables.addColumn(table.id, {
+    name: 'Notice period',
+    prompt: 'What notice period does this contract require?',
+    outputType: 'text_quote',
+});
+await ws.tables.addRow(table.id, { type: 'file', id: file.id });
+
+// See what a run costs before spending anything.
+const { cost } = await ws.tables.previewRun(table.id);
+
+// Run it and wait for every cell.
+const cells = await ws.tables.runAndWait(table.id);
+
+// Or search across the workspace instead.
+const matches = await ws.search({ query: 'termination clause', limit: 5 });
+```
+
+Group several files into one row — a master contract and its amendments — with a bundle:
+
+```typescript
+const bundle = await ws.bundles.create({ name: 'Acme MSA', fileIds: [master.id] });
+await ws.bundles.addFiles(bundle.id, [amendment.id], { role: 'amendment', effectiveAt: Date.now() });
+await ws.tables.addRow(table.id, { type: 'bundle', id: bundle.id });
+```
+
+### Migrating from v1
+
+Mint a personal key and drop it in — the SDK routes on the prefix, so nothing else has to change to
+reach v2. Then, at your own pace: `datasets` becomes `ws.files`, `datasetId` becomes `fileId`, and
+`extract`/`vectorize` become the single `ws.files.upload(...)`.
+
+To try v2 with your existing workspace key, pass `apiVersion: 'v2'`; it works, pinned to that one
+workspace.
 
 ### Handling errors
 

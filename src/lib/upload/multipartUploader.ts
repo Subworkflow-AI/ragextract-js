@@ -9,6 +9,15 @@ import pLimit from 'p-limit';
 type MultipartUploaderOpts = {
     chunkSize: number;
     concurrency: number;
+    /**
+     * Prefix in front of `/upload_session/*`.
+     *
+     * `/v1` mounts the session endpoints at the root; `/v2` nests everything under a workspace, so
+     * it passes `/workspaces/wks_…/files`. The four calls below are the whole multipart protocol,
+     * and having them agree on one prefix is what keeps a v2 session from starting at v1's path and
+     * failing three requests later on an unknown key.
+     */
+    basePath: string;
 }
 
 class MultipartUploader <T>{
@@ -16,7 +25,8 @@ class MultipartUploader <T>{
     private uploadedParts: UploadSessionPart[] = [];
     private opts: MultipartUploaderOpts = {
         chunkSize: 1024 * 1024 * 10,
-        concurrency: 4
+        concurrency: 4,
+        basePath: ''
     };
 
     constructor(
@@ -36,11 +46,12 @@ class MultipartUploader <T>{
             fileName: params.fileName,
             fileExt: params.fileExt,
             fileType: params.fileType,
+            // Omitted entirely on /v2, which has one ingest verb — see the v2 uploader.
             jobType: params.jobType,
             expiresInDays: params.expiresInDays ? String(params.expiresInDays) : undefined
         }
 
-        const req = await this.api.$post(`/upload_session/start`,{ form: formData });
+        const req = await this.api.$post(`${this.opts.basePath}/upload_session/start`,{ form: formData });
         const response = await req.json() as ApiResponse<UploadSessionStartResponse>;
         if (!response.data?.key) throw new Error(`Expected response to contain 'key' but none found.`);
         this.key = response.data.key;
@@ -57,7 +68,7 @@ class MultipartUploader <T>{
         formData.append('partNumber', String(partNumber));
         formData.append('file', file, `${this.key}_${partNumber}`);
 
-        const req = await this.api.$post(`/upload_session/append`,{ form: formData });
+        const req = await this.api.$post(`${this.opts.basePath}/upload_session/append`,{ form: formData });
         const response = await req.json() as ApiResponse<UploadSessionAppendResponse>;
 
         const part = response.data;
@@ -119,7 +130,7 @@ class MultipartUploader <T>{
             key: this.key,
             parts: sortedParts
         }
-        const req = await this.api.$post(`/upload_session/end`, { form: formData });
+        const req = await this.api.$post(`${this.opts.basePath}/upload_session/end`, { form: formData });
         const response = await req.json() as ApiResponse<T>;
         this.key = null;
         return response;
@@ -128,7 +139,7 @@ class MultipartUploader <T>{
     public abort = async (): Promise<void> => {
         if (!this.key) console.warn('Attempted to abort, but no active session found.');
         const formData = { key: this.key };
-        await this.api.$post(`/upload_session/abort`, { form: formData });
+        await this.api.$post(`${this.opts.basePath}/upload_session/abort`, { form: formData });
         this.key = null;
         this.uploadedParts = [];
     }
