@@ -6,7 +6,7 @@
  * never sees the other's names.
  */
 
-export type FileType = 'doc' | 'audio' | 'video' | 'image';
+export type FileType = 'doc' | 'audio' | 'video' | 'image' | 'image_list';
 
 /** SUCCESS and ERROR are terminal — the pollers stop on either. */
 export type JobStatus = 'NOT_STARTED' | 'IN_QUEUE' | 'IN_PROGRESS' | 'SUCCESS' | 'ERROR';
@@ -73,7 +73,46 @@ export type OutputType =
     | 'categorical'
     | 'number'
     | 'text_quote'
-    | 'list_scalar';
+    | 'list_scalar'
+    /** Answers with a region of a page rather than text. See `ImageRegion`. */
+    | 'image'
+    /** Same value shape as `image`; a bundle unions the regions instead of resolving precedence. */
+    | 'image_list';
+
+/** `[xmin, ymin, xmax, ymax]` as fractions (0-1) of the page image's width and height. */
+export type Box = [number, number, number, number];
+
+/**
+ * One picture an `image`/`image_list` column found.
+ *
+ * NOT a cropped bitmap — nothing server-side materialises a derived image, so the region is the
+ * whole answer: fetch the page with `ws.files.item(fileId, itemId)` and crop to `box` yourself.
+ *
+ * `box` in fractions rather than pixels is what makes that work at any resolution — it was located
+ * against the page image the model saw and maps unchanged onto a higher-DPI render of the same
+ * page. `null` means the whole page.
+ */
+export type ImageRegion = {
+    fileId: string;
+    page: number;
+    box: Box | null;
+    /** What the model says it found — the verification signal, and the alt text. */
+    caption: string | null;
+};
+
+/** Where a cell's answer came from. `box` is present when grounding managed to locate it. */
+export type Citation = {
+    fileId: string;
+    page: number;
+    quote: string | null;
+    box?: Box | null;
+};
+
+/**
+ * A cell's answer: regions for an image column, a typed scalar for everything else. Decided by the
+ * column's `outputType`, so narrow on that rather than sniffing the shape.
+ */
+export type CellValue = ImageRegion[] | { type: string; value: unknown };
 
 export type Table = {
     id: string;
@@ -122,12 +161,11 @@ export type Cell = {
     statusText: string | null;
     /** `credits` or `cap` when billing stopped this cell; null when it ran or failed ordinarily. */
     blockReason: 'credits' | 'cap' | null;
-    /** JSON string: the typed value `{ type, value }`. */
-    value: string | null;
-    /** JSON string: `[{ fileId, page, quote }]`. */
-    citations: string | null;
+    value: CellValue | null;
+    citations: Citation[] | null;
     confidence: number | null;
-    humanOverride: string | null;
+    /** A manual correction, kept alongside the AI value rather than replacing it. */
+    humanOverride: CellValue | null;
     columnVersion: number;
     bundleVersion: number;
     /** The cell's snapshot is behind its column or its bundle — it needs a rerun to be current. */

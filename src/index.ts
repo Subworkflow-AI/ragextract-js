@@ -13,9 +13,13 @@ export type { Dataset, DatasetItem, DatasetType, Job, JobStatus } from './lib/ty
 export type { SearchOpts } from './lib/search/api.types';
 export type { ExtractRequestOpts, VectorizeRequestOpts, UploadSessionOpts } from './lib/upload/api.types';
 export type {
+    Box,
     Bundle,
     BundleFile,
     Cell,
+    CellValue,
+    Citation,
+    ImageRegion,
     Column,
     FileItem,
     FileType,

@@ -1,5 +1,5 @@
 import { buildQuery, type ApiClient, type ApiResponse } from '../client';
-import type { Cell, Column, OutputType, Row, Run, Table } from './types';
+import type { Cell, CellValue, Column, OutputType, Row, Run, Table } from './types';
 
 type TableBundle = {
     table: Table;
@@ -132,8 +132,11 @@ export class V2TablesAPI {
     /**
      * Sets a human override. The AI value is kept alongside it, never overwritten, and a rerun will
      * not touch an overridden cell.
+     *
+     * `value` is the typed value itself, not a JSON string, and matches the column's `outputType` —
+     * `{ type, value }` for a typed column, `ImageRegion[]` for an image one.
      */
-    setOverride = async (tableId: string, cellId: string, value: string) =>
+    setOverride = async (tableId: string, cellId: string, value: CellValue) =>
         this.unwrap<Cell>(
             await this.api.$put(`${this.base}/${tableId}/cells/${cellId}/override`, {
                 json: { value } as never,
