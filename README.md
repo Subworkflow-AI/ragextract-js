@@ -49,6 +49,39 @@ const subworkflow = new Ragextract({
     apiKey: '$RAGEXTRACT_API_KEY'
 });
 ```
+
+### Handling errors
+
+Failed requests throw a `RagextractApiError` carrying the HTTP `status` and the parsed response
+`body`, so you can branch on the code instead of matching on message text.
+
+```typescript
+import { Ragextract, RagextractApiError } from '@subworkflow/ragextract';
+
+try {
+    const dataset = await ragextract.extract(fileBuffer, { fileName: 'report.pdf' });
+} catch (e) {
+    if (e instanceof RagextractApiError) {
+        if (e.isInsufficientCredits) return topUpAndRetry();  // 402
+        if (e.isCapExceeded) return queueForLater();          // 403 — e.g. job concurrency
+        if (e.isUnauthorized) throw new Error('Check your API key');  // 401
+    }
+    throw e;
+}
+```
+
+Under credit billing, **402 is an ordinary operating state** rather than a bug — worth handling
+explicitly.
+
+`429` responses are retried automatically with exponential backoff and only surface once the
+attempts are exhausted. This matters for large uploads: the API allows 15 writes per minute and
+every multipart part is a write, so a large file *will* be throttled part-way through and the
+retries are what carry it to completion. Tune with `maxRetries` (default 10, `1` to disable):
+
+```typescript
+const ragextract = new Ragextract({ apiKey: '...', maxRetries: 1 });
+```
+
 ### 1. Extract & Query Usage
 Uploads a document and allows fetching any page or any range of pages in both pdf and jpg formats. Great for use-cases such as Structured Outputs (extracting properties) or Grounding (showing source of LLM's answers).
 ```typescript
@@ -200,22 +233,22 @@ When a `Job` is returned, you'll have to check the job status for the dataset ma
 ```typescript
 .datasets.list(
     opts?: {
-        type?: "doc",
+        types?: "doc" | "audio" | "video" | "image";
         sort?: string | string[];
         offset?: number;
         limit?: number;
-        expiryInSeconds?: number;
+        expiresInSeconds?: number;
     }
-): Promise<DatasetItem[]>;
+): Promise<Dataset[]>;
 ```
 * List all available Datasets (documents) in current workspace
 
 **Params**:
- * **opts?.type** (Dataset | string) - *Required*. This is always "doc" for now.
+ * **opts?.types** (string) - *optional*. Filter by dataset type: `doc`, `audio`, `video` or `image`. Omit to return every type. One value only — the API rejects a comma-separated list.
  * **opts?.sort?** (string | string[]) - *optional*. Dataset property to sort results by, prepend `-` for desc order eg. `createdAt` for createdAt asc and `-createdAt` for createdAt desc. default is `createdAt` descending.
  * **opts.offset?** (number) - *optional*.  default is 0.
  * **opts.limit?** (number) - *optional*. Max 100. default is 10.
- * **opts.expiryInSeconds?** (number) - *optional*. Overrides the expiration duration for the file share. default is 10 mins.
+ * **opts.expiresInSeconds?** (number) - *optional*. Overrides the expiration duration for the file share. default is 10 mins.
 
 **Returns**
 * `Array<Dataset>` (Dataset[]) - An array of matching Dataset objects.
@@ -279,7 +312,7 @@ When a `Job` is returned, you'll have to check the job status for the dataset ma
         sort?: string | string[];
         offset?: number;
         limit?: number;
-        expiryInSeconds?: number;
+        expiresInSeconds?: number;
     }
 ): Promise<DatasetItem[]>;
 ```
@@ -292,7 +325,7 @@ When a `Job` is returned, you'll have to check the job status for the dataset ma
  * **opts.sort?** (string | string[]) - *optional*. DatasetItem property to sort results by, prepend `-` for desc order eg. `createdAt` for createdAt asc and `-createdAt` for createdAt desc. default is `createdAt` descending.
  * **opts.offset?** (number) - *optional*.  default is 0.
  * **opts.limit?** (number) - *optional*. Max 100. default is 10.
- * **opts.expiryInSeconds?** (number) - *optional*. Overrides the expiration duration for the file share. default is 10 mins.
+ * **opts.expiresInSeconds?** (number) - *optional*. Overrides the expiration duration for the file share. default is 10 mins.
 
 **Returns**
 * `Array<DatasetItem>` (DatasetItem[]) - An array of matching DatasetItem objects.
@@ -302,10 +335,8 @@ When a `Job` is returned, you'll have to check the job status for the dataset ma
 .search({
     query: string | { text: string; image_url?: string; };
     datasets: Dataset | Dataset[] | string | string[];
-    sort?: string | string[];
-    offset?: number;
     limit?: number;
-    expiryInSeconds?: number;
+    expiresInSeconds?: number;
 });
 ```
 * Requires `/vectorize` job executed on dataset prior to search being enabled
@@ -315,10 +346,11 @@ When a `Job` is returned, you'll have to check the job status for the dataset ma
 **Params**:
 * **query** (string | { text: string; image_url?: string }) - *Required*. The search terms to query for. Can be either text or text and image. When searching with image, image can be publicly accessible image url or base64 string.
  * **datasets** (Dataset[] | string[]) - *Optional*. filters the search to one or more datasets. Accepts Dataset objects and/or Dataset Ids. Default is all datasets included in search.
- * **sort?** (string | string[]) - *optional*. DatasetItem property to sort results by, prepend `-` for desc order eg. `createdAt` for createdAt asc and `-createdAt` for createdAt desc. default is `createdAt` descending.
- * **offset?** (number) - *optional*. default is 0.
  * **limit?** (number) - *optional*. default is 10. Max 100.
- * **expiryInSeconds?** (number) - *optional*. Overrides the expiration duration for the file share. default is 10 mins.
+
+ > `sort` and `offset` are not accepted by `/search`. Results come back ranked by relevance, which
+ > is the only ordering a vector search has.
+ * **expiresInSeconds?** (number) - *optional*. Overrides the expiration duration for the file share. default is 10 mins.
 
 **Returns**
 * `Array<DatasetItem>` (DatasetItem[]) - An array of matching datasetItem objects.
@@ -349,7 +381,6 @@ jobs.cancel(jobId: string): Promise<job | null>
 ```typescript
 .jobs.list(opts?: {
     statuses?: string | string[];
-    types?: string | string[];
     offset?: number;
     limit?: number;
 })
@@ -358,9 +389,11 @@ jobs.cancel(jobId: string): Promise<job | null>
 * Orderd by creation time descending.
 
 **Params**:
- * **statuses** (string[] | string[]) - *Optional*. filters results by job status. Available statuses are `NOT_STARTED`, `IN_PROGRESS`, `SUCCESS`, `ERROR`. Default is all statuses.
- * **types** (string[] | string[]) - *Optional*. filters results by job type. Available types are `dataset/extract`, `dataset/vectorize`. Default is all types.
+ * **statuses** (string | string[]) - *Optional*. filters results by job status. Available statuses are `NOT_STARTED`, `IN_QUEUE`, `IN_PROGRESS`, `SUCCESS`, `ERROR`. Default is all statuses.
  * **offset?** (number) - *optional*. default is 0.
+
+ > `types` is not accepted by `/jobs`; it was documented and sent, but the API stripped it and
+ > returned every type. Filter client-side on `job.type` until the endpoint supports it.
  * **limit?** (number) - *optional*. default is 10. Max 100.
 
 **Returns**

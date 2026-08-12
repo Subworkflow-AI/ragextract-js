@@ -1,6 +1,19 @@
-import type { ApiClient, ApiResponse } from "../client";
+import { buildQuery, type ApiClient, type ApiResponse, type QueryValue } from "../client";
 import type { JobsAPI } from "../jobs/api";
-import type { Dataset, DatasetItem, Job } from "../types";
+import type { Dataset, DatasetItem, DatasetType, Job } from "../types";
+
+/**
+ * Share-link TTL, in seconds.
+ *
+ * `expiryInSeconds` is the historical SDK spelling and never reached the API, which reads
+ * `expiresInSeconds`. Both are accepted so existing code keeps compiling — and now actually takes
+ * effect — but new code should use `expiresInSeconds`.
+ */
+type ShareTtlOpts = {
+    expiresInSeconds?: number;
+    /** @deprecated Use `expiresInSeconds`. Still honoured; will go in a future major. */
+    expiryInSeconds?: number;
+};
 
 export class DatasetsAPI {
     constructor(
@@ -8,8 +21,8 @@ export class DatasetsAPI {
         private readonly jobs: JobsAPI
     ){}
 
-    get = async (datasetId: string, opts?: { expiryInSeconds?: number }) => {
-        const req = await this.api.$get(`/datasets/${datasetId}`,{ query: opts });
+    get = async (datasetId: string, opts?: ShareTtlOpts) => {
+        const req = await this.api.$get(`/datasets/${datasetId}`,{ query: buildQuery(opts) });
         const res = await req.json() as ApiResponse<Dataset>;
         if (res.error) throw new Error(res.error);
         return res.data || null;
@@ -45,51 +58,41 @@ export class DatasetsAPI {
         return datasetResponse;
     }
 
-    list = async (opts?: {
-        type?: "doc",
+    list = async (opts?: ShareTtlOpts & {
+        /**
+         * Filter by dataset type. Omit to return every type.
+         *
+         * The wire name is `types`; the SDK previously sent `type`, which the API ignored — so this
+         * filter has never actually applied. It also hard-coded `doc` on every call, meaning
+         * `list()` really did return all types. Defaulting to no filter preserves that observed
+         * behaviour rather than silently narrowing existing callers' results to `doc`.
+         *
+         * One value only: the API validates this against a single-value enum today, so a
+         * comma-joined list is rejected.
+         */
+        types?: DatasetType,
         sort?: string | string[];
         offset?: number;
         limit?: number;
-        expiryInSeconds?: number;
     }) => {
-        const _opts = { ...opts };
-        if (opts?.type && opts?.type !== 'doc') throw new Error('Invalid value for type. Only "doc" is supported.');
-        _opts.type = 'doc';
-        const query = opts
-            ? Object.keys(_opts).reduce((acc,key) => {
-                const value = _opts[key as keyof typeof opts];
-                if (!value) return acc;
-                acc[key] = Array.isArray(value) ? value.join(',') : value;
-                return acc;
-            },{} as Record<string,string|number>)
-            : undefined;
-        const req = await this.api.$get(`/datasets`,{ query });
-        const res = await req.json() as ApiResponse<DatasetItem[]>;
+        const req = await this.api.$get(`/datasets`,{ query: buildQuery(opts as Record<string, QueryValue>) });
+        const res = await req.json() as ApiResponse<Dataset[]>;
         if (res.error) throw new Error(res.error);
         return res.data || null;
     }
 
      getItems = async (
         dataset: Dataset | string,
-        opts?: {
+        opts?: ShareTtlOpts & {
             row?: string;
             cols?: number | number[];
             sort?: string | string[];
             offset?: number;
             limit?: number;
-            expiryInSeconds?: number;
         }
     ) => {
         const datasetId = typeof dataset === 'string' ? dataset : dataset.id;
-        const query = opts
-            ? Object.keys(opts).reduce((acc,key) => {
-                const value = opts[key as keyof typeof opts];
-                if (!value) return acc;
-                acc[key] = Array.isArray(value) ? value.join(',') : value;
-                return acc;
-            },{} as Record<string,string|number>)
-            : undefined;
-        const req = await this.api.$get(`/datasets/${datasetId}/items`,{ query });
+        const req = await this.api.$get(`/datasets/${datasetId}/items`,{ query: buildQuery(opts as Record<string, QueryValue>) });
         const res = await req.json() as ApiResponse<DatasetItem[]>;
         if (res.error) throw new Error(res.error);
         return res.data || null;

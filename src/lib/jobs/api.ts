@@ -1,5 +1,5 @@
-import type { ApiClient, ApiResponse } from "../client";
-import type { DatasetItem, Job } from "../types";
+import { buildQuery, type ApiClient, type ApiResponse } from "../client";
+import type { Job, JobStatus } from "../types";
 
 export class JobsAPI {
     constructor(
@@ -45,21 +45,15 @@ export class JobsAPI {
         return res.data || null;
     }
 
+    // `types` was declared here but /jobs accepts only statuses/offset/limit — it was stripped
+    // server-side, so filtering by job type looked supported and quietly returned everything.
+    // Removed rather than left as a lie.
     list = async (opts?: {
-        statuses?: string | string[];
-        types?: string[],
+        statuses?: JobStatus | JobStatus[];
         offset?: number;
         limit?: number;
     }) => {
-        const query = opts
-            ? Object.keys(opts).reduce((acc,key) => {
-                const value = opts[key as keyof typeof opts];
-                if (!value) return acc;
-                acc[key] = Array.isArray(value) ? value.join(',') : value;
-                return acc;
-            },{} as Record<string,string|number>)
-            : undefined;
-        const req = await this.api.$get(`/jobs`,{ query });
+        const req = await this.api.$get(`/jobs`,{ query: buildQuery(opts) });
         const res = await req.json() as ApiResponse<Job[]>;
         if (res.error) throw new Error(res.error);
         return res.data || null;

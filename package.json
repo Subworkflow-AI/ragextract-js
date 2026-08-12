@@ -21,7 +21,7 @@
     "email": "support@subworkflow.ai"
   },
   "scripts": {
-    "lint": "tsc --noEmit ./src/index.ts",
+    "lint": "tsc --noEmit -p tsconfig.json",
     "types": "tsc --project build.tsconfig.json",
     "build": "rm -rf dist && bun bun.build.ts && bun run types",
     "clean-dist": "rm -rf dist",

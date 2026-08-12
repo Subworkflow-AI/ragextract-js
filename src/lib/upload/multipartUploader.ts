@@ -91,11 +91,25 @@ class MultipartUploader <T>{
             } else {
                 throw new Error(`${this.key} partNumber=${partNumber} Unsupported data type for chunking. Must be Blob, Buffer, or ArrayBuffer.`);
             }
-            await new Promise(res => setTimeout(res,100));
             jobs.push(limiter(() => this.sendChunk(partNumber, chunk)));
             offset += chunk.size;
         }
-        await Promise.all(jobs);
+
+        try {
+            await Promise.all(jobs);
+        } catch (e) {
+            // Abort, then rethrow. A failed part used to escape with the session still open,
+            // leaving an incomplete multipart upload in R2 that nothing cleans up — and the caller
+            // could not abort it themselves, since the key is private and `end()` is what clears it.
+            // Best-effort: the original failure is the informative one, so a failing abort must not
+            // replace it.
+            try {
+                await this.abort();
+            } catch (abortError) {
+                console.warn('Failed to abort upload session after a part error.', abortError);
+            }
+            throw e;
+        }
     }
 
     public end = async () => {

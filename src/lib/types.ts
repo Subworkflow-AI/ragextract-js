@@ -1,8 +1,14 @@
+/** Dataset types the API recognises; mirrors the `dataset.type` union in ragextract-db. */
+export type DatasetType = 'doc' | 'audio' | 'video' | 'image';
+
+/** SUCCESS and ERROR are terminal — `jobs.poll` stops on either. */
+export type JobStatus = 'NOT_STARTED' | 'IN_QUEUE' | 'IN_PROGRESS' | 'SUCCESS' | 'ERROR';
+
 export type Job = {
     id: string;
     datasetId: string;
     type: string;
-    status: string;
+    status: JobStatus;
     statusText: string;
     startedAt: number;
     finishedAt: number;
@@ -14,7 +20,7 @@ export type Job = {
 export type Dataset = {
     id: string;
     workspaceId: string;
-    type: string;
+    type: DatasetType;
     fileName: string;
     fileExt: string;
     fileSize: number;
