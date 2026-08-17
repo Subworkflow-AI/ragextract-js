@@ -82,6 +82,16 @@ export class V2TablesAPI {
             config?: string | null;
             /** True when the answer spans documents rather than living in one of them. */
             isCompositional?: boolean;
+            /**
+             * Credits charged per cell for this column. Omit it and the server applies its own
+             * default, which is what you want unless you are deliberately repricing a column.
+             *
+             * ⚠️ **The valid range changed on 2026-08-17** and is now **4–40** (it was 1–10). A
+             * credit was redenominated from $0.01 to $0.0025, so the same DOLLAR prices are now
+             * expressed in 4x as many credits — a typed column is 4, a list column around 12.
+             * Sending a value in the old range is rejected by the API with a 400, so code that
+             * hardcoded `creditRate: 1` needs updating rather than silently repricing.
+             */
             creditRate?: number;
             sortOrder?: number;
         },

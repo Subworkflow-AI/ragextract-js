@@ -136,6 +136,10 @@ export type Column = {
     outputType: OutputType;
     config: string | null;
     isCompositional: boolean;
+    /**
+     * Credits charged per cell. Values are 4x what they were before 2026-08-17: a credit is now
+     * $0.0025 rather than $0.01, so the dollar price is unchanged while the number is not.
+     */
     creditRate: number;
     sortOrder: number;
     version: number;
