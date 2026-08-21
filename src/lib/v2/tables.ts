@@ -194,6 +194,30 @@ export class V2TablesAPI {
         this.unwrap<Run>(await this.api.$get(`${this.base}/${tableId}/runs/${runId}`));
 
     /**
+     * Stops one run. 409s if it had already finished — a cancel races the thing it cancels, and
+     * answering "done" to a request that stopped nothing hides the only fact worth knowing.
+     *
+     * Cells the run had not reached yet are simply left blank and can be run again; a cell already
+     * extracting finishes and bills, because it has already cost the extraction provider. So this
+     * means "stop starting new ones", not "stop now".
+     */
+    cancelRun = async (tableId: string, runId: string) =>
+        this.unwrap<Run>(await this.api.$post(`${this.base}/${tableId}/runs/${runId}/cancel`));
+
+    /**
+     * Stops every run in flight for a table, and reports how many that was.
+     *
+     * A table can have several at once — each rerun is its own run, and a standing table's sweep
+     * starts one of its own — so "stop this table" is a different request from stopping a run you
+     * happen to hold the id of, not a convenience wrapper around it. Cancelling nothing is a
+     * success, not an error.
+     */
+    cancelRuns = async (tableId: string) =>
+        this.unwrap<{ canceled: number; runs: Run[] }>(
+            await this.api.$post(`${this.base}/${tableId}/runs/cancel`),
+        );
+
+    /**
      * Starts a run and polls until it finishes, returning the table's cells.
      *
      * Extraction is asynchronous and per-cell, so without this every caller writes the same poll
@@ -214,7 +238,11 @@ export class V2TablesAPI {
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             await new Promise(resolve => setTimeout(resolve, interval));
             const run = await this.getRun(tableId, started.run.id);
-            if (run?.status === 'SUCCESS' || run?.status === 'ERROR') return this.cells(tableId);
+            // CANCELED is terminal too. Without it a cancelled run polls out the full maxAttempts
+            // and then throws a timeout — reporting a hang for something that stopped on request.
+            if (run?.status === 'SUCCESS' || run?.status === 'ERROR' || run?.status === 'CANCELED') {
+                return this.cells(tableId);
+            }
         }
         throw new Error(`Run ${started.run.id} did not finish within ${(maxAttempts * interval) / 1000}s`);
     };

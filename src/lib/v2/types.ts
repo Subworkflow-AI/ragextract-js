@@ -178,10 +178,17 @@ export type Cell = {
     updatedAt: number;
 };
 
+/**
+ * A run has one terminal state a dataset job does not: CANCELED, written when someone stops the
+ * run. Deliberately not folded into `JobStatus` — a dataset job cannot reach it (`jobs.cancel`
+ * lands a job on ERROR), so widening the shared union would advertise a state that never occurs.
+ */
+export type RunStatus = JobStatus | 'CANCELED';
+
 export type Run = {
     id: string;
     tableId: string;
-    status: JobStatus;
+    status: RunStatus;
     triggeredBy: string | null;
     totalCells: number;
     pendingCells: number;
