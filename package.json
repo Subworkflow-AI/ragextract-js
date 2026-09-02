@@ -2,6 +2,15 @@
   "name": "@subworkflow/ragextract",
   "description": "The official Javascript SDK for Ragextract",
   "version": "0.1.1",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -25,9 +34,12 @@
     "types": "tsc --project build.tsconfig.json",
     "build": "rm -rf dist && bun bun.build.ts && bun run types",
     "clean-dist": "rm -rf dist",
-    "prepublish": "bun run lint && bun run build",
-    "publish": "npm publish --access public",
+    "prepublishOnly": "bun run lint && bun run build",
+    "release:npm": "npm publish",
     "release": "release-it"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@types/bun": "latest",
