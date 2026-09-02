@@ -1,10 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 (2026-09-02)
 
-> Ships as **0.2.0**, not 0.1.2. The `creditRate` range below is a breaking change, and under 0.x
-> that goes in the minor. Rename this heading when `release-it` stamps the version — nothing
-> automates it, there is no changelog plugin installed.
+A minor rather than a patch: the `creditRate` range below is a breaking change, and under 0.x that
+goes in the minor.
 
 ### The v2 API, routed by your key
 
