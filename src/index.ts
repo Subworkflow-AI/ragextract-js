@@ -28,6 +28,12 @@ export type {
     Row,
     Run,
     Table,
+    TableQuery,
+    TableQueryCell,
+    TableQueryCondition,
+    TableQueryOperator,
+    TableQueryResult,
+    UndeterminedReason,
     Workspace,
 } from './lib/v2/types';
 export { WorkspaceHandle } from './lib/v2/workspaces';

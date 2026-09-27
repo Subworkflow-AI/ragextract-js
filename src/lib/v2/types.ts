@@ -179,6 +179,98 @@ export type Cell = {
 };
 
 /**
+ * The operators a query condition may use. Which ones a column accepts depends on its `outputType`
+ * — the API refuses an operator the column does not offer and names the ones it does:
+ *
+ *   text_quote: contains, not_contains, is, is_not
+ *   number:     eq, neq, gt, gte, lt, lte, between
+ *   date:       eq, lt, lte, gt, gte, between — absolute `YYYY-MM-DD` only, never "today"
+ *   boolean:    is_true, is_false
+ *   categorical: is_any_of, is_none_of
+ *   list_scalar: is_any_of, has_all_of, is_none_of, contains
+ *   image / image_list: contains, not_contains (on captions)
+ *   document (the row's file names): is_any_of, is_none_of, contains
+ *   every column but document: is_empty, is_not_empty, no_answer, has_error, not_extracted
+ */
+export type TableQueryOperator =
+    | 'contains' | 'not_contains' | 'is' | 'is_not'
+    | 'is_any_of' | 'is_none_of' | 'has_all_of'
+    | 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'between'
+    | 'is_true' | 'is_false'
+    | 'is_empty' | 'is_not_empty' | 'no_answer' | 'has_error' | 'not_extracted';
+
+export type TableQueryCondition = {
+    /** A column id, its exact name (case-insensitive), or `'document'` for the row's file names. */
+    column: string;
+    op: TableQueryOperator;
+    /** The operand: a number, text, or a `YYYY-MM-DD` date. */
+    value?: string | number | boolean;
+    /** The upper bound, for `between`. */
+    value2?: string | number;
+    /** For `is_any_of`, `is_none_of` and `has_all_of`. */
+    values?: (string | number)[];
+};
+
+export type TableQuery = {
+    /** All of them must hold. */
+    where?: TableQueryCondition[];
+    /** Columns to return, by id or name. Default: every column. */
+    select?: string[];
+    /** Blanks sort last in either direction. Default: table order. */
+    sort?: { column: string; direction?: 'asc' | 'desc' };
+    /** Default 25, max 200. */
+    limit?: number;
+    offset?: number;
+    /** Include each cell's quotes, not just the pages it cites. */
+    citations?: boolean;
+};
+
+/** Why a condition could not be decided for a row. */
+export type UndeterminedReason = 'not_extracted' | 'pending' | 'error' | 'no_answer' | 'unreadable';
+
+export type TableQueryCell = {
+    cellId: string | null;
+    /** The value a person sees — a human correction when `overridden`. The inner value (a number,
+     *  text, a list, regions), not the `{ type, value }` wrapper; `outputType` says which. */
+    value: unknown;
+    overridden: boolean;
+    stale: boolean;
+    confidence: number | null;
+    status: string | null;
+    pages: { fileId: string; page: number }[];
+    /** Present when the query asked for `citations: true`. */
+    citations?: Citation[] | null;
+};
+
+export type TableQueryResult = {
+    rowsInTable: number;
+    matched: number;
+    /**
+     * Rows nothing decidable ruled out, but at least one condition could not be decided — a cell
+     * never extracted, errored, empty, or unreadable as its type. They are in neither `rows` nor the
+     * excluded set: report them as unknown, never as failing.
+     */
+    undetermined: number;
+    undeterminedBy: Record<string, Partial<Record<UndeterminedReason, number>>>;
+    /** Up to 25 of the undetermined rows, with the reason per column. */
+    undeterminedRows: { rowId: string; label: string | null; reasons: Record<string, UndeterminedReason> }[];
+    /** Matches whose answer rests on a cell extracted before its column or documents changed. */
+    matchedOnStale: number;
+    offset: number;
+    /** Null on the last page. */
+    nextOffset: number | null;
+    columns: { key: string; columnId: string; name: string; outputType: string }[];
+    rows: {
+        rowId: string;
+        /** What the app calls the row: a bundle's name, or its primary file's. */
+        label: string | null;
+        /** Keyed by column name (id appended where two share one). The document field is a list
+         *  of file names. */
+        cells: Record<string, TableQueryCell | (string | null)[]>;
+    }[];
+};
+
+/**
  * A run has one terminal state a dataset job does not: CANCELED, written when someone stops the
  * run. Deliberately not folded into `JobStatus` — a dataset job cannot reach it (`jobs.cancel`
  * lands a job on ERROR), so widening the shared union would advertise a state that never occurs.

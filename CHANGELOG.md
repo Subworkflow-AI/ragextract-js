@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### `tables.query()` — which rows match, free
+
+`ws.tables.query(tableId, { where, select, sort, limit, offset, citations })` calls the new
+`POST /v2/…/tables/:tableId/query`. It filters a table's rows on the app's own filter rules and
+calls no AI, so it costs nothing. Conditions are ANDed; each names a column by id or name and an
+operator its type offers (`TableQueryOperator` lists them). Dates are absolute `YYYY-MM-DD`.
+
+**Read `undetermined` before you count.** A row whose cell never ran, errored or found nothing is
+neither matched nor ruled out. It is counted with the reason and listed in `undeterminedRows`, not
+silently dropped, so "three venues qualify" does not quietly mean "three, plus two we know nothing
+about". Each returned cell's `value` is what a person sees, so a human correction wins; `overridden`
+says which. Each cell also carries the pages it cites.
+
 ## 0.2.0 (2026-09-02)
 
 A minor rather than a patch: the `creditRate` range below is a breaking change, and under 0.x that

@@ -106,6 +106,20 @@ await ws.bundles.addFiles(bundle.id, [amendment.id], { role: 'amendment', effect
 await ws.tables.addRow(table.id, { type: 'bundle', id: bundle.id });
 ```
 
+Query a table's rows by their values — free, since it filters what was extracted and calls no AI:
+
+```typescript
+const { rows, matched, undetermined, undeterminedRows } = await ws.tables.query(table.id, {
+    where: [
+        { column: 'Stage width (m)', op: 'gte', value: 12 },
+        { column: 'Region', op: 'is_any_of', values: ['London'] },
+    ],
+    sort: { column: 'Stage width (m)', direction: 'desc' },
+});
+// `undetermined` rows had a cell that never ran, errored or found nothing: they are neither a
+// match nor a miss, so report them rather than leaving them out.
+```
+
 ### Migrating from v1
 
 Mint a personal key and drop it in — the SDK routes on the prefix, so nothing else has to change to

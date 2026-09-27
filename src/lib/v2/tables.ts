@@ -1,5 +1,5 @@
 import { buildQuery, type ApiClient, type ApiResponse } from '../client';
-import type { Cell, CellValue, Column, OutputType, Row, Run, Table } from './types';
+import type { Cell, CellValue, Column, OutputType, Row, Run, Table, TableQuery, TableQueryResult } from './types';
 
 type TableBundle = {
     table: Table;
@@ -138,6 +138,21 @@ export class V2TablesAPI {
 
     cells = async (tableId: string) =>
         this.unwrap<Cell[]>(await this.api.$get(`${this.base}/${tableId}/cells`));
+
+    /**
+     * The rows whose values match conditions — `where: [{ column: 'Stage width (m)', op: 'gte',
+     * value: 12 }]` — one page at a time, on the app's own filter rules. **Free**: it filters stored
+     * values and calls no AI.
+     *
+     * Read `undetermined` before counting: a row whose cell never ran, errored or found nothing is
+     * neither matched nor ruled out, and is listed in `undeterminedRows` rather than dropped. Page
+     * with `offset` until `nextOffset` is null. A condition the column cannot take is refused with
+     * the operators it does offer.
+     */
+    query = async (tableId: string, query: TableQuery = {}) =>
+        this.unwrap<TableQueryResult>(
+            await this.api.$post(`${this.base}/${tableId}/query`, { json: query as never }),
+        );
 
     /**
      * Sets a human override. The AI value is kept alongside it, never overwritten, and a rerun will
