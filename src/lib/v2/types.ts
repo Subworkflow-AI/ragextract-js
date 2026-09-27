@@ -109,8 +109,11 @@ export type Citation = {
 };
 
 /**
- * A cell's answer: regions for an image column, a typed scalar for everything else. Decided by the
- * column's `outputType`, so narrow on that rather than sniffing the shape.
+ * A cell's answer. **Reads always return `{ type, value }`**, image columns included, where `value`
+ * is the `ImageRegion[]`. Narrow on the column's `outputType` rather than sniffing the shape.
+ *
+ * The bare `ImageRegion[]` is accepted by `setOverride` on an image column and wrapped by the API
+ * before it is stored. Until 2026-09-27 it was stored bare, and read as empty in the app.
  */
 export type CellValue = ImageRegion[] | { type: string; value: unknown };
 

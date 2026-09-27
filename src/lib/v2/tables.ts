@@ -158,8 +158,9 @@ export class V2TablesAPI {
      * Sets a human override. The AI value is kept alongside it, never overwritten, and a rerun will
      * not touch an overridden cell.
      *
-     * `value` is the typed value itself, not a JSON string, and matches the column's `outputType` —
-     * `{ type, value }` for a typed column, `ImageRegion[]` for an image one.
+     * `value` is the typed value itself, not a JSON string, and matches the column's `outputType`:
+     * `{ type, value }`, where an image column's `value` is its `ImageRegion[]`. A bare
+     * `ImageRegion[]` is also accepted on an image column; the API wraps it.
      */
     setOverride = async (tableId: string, cellId: string, value: CellValue) =>
         this.unwrap<Cell>(
