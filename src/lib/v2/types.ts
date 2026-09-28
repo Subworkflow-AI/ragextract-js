@@ -271,7 +271,50 @@ export type TableQueryResult = {
          *  of file names. */
         cells: Record<string, TableQueryCell | (string | null)[]>;
     }[];
+    /**
+     * A set condition naming a value the column never holds — `'MSc'` asked of a column that says
+     * `'Masters'`. Lists what the column does hold. Read these before trusting an empty or short
+     * answer; `tables.stats()` gives the vocabulary up front.
+     */
+    warnings: TableQueryWarning[];
 };
+
+export type TableQueryWarning = {
+    column: string;
+    op: TableQueryOperator;
+    unmatched: string[];
+    /** What the column holds, up to 50, sorted. */
+    values: string[];
+    valueCount: number;
+    message: string;
+};
+
+/** Per-column counts over a whole table, from the same cell states `query()` filters by. */
+export type ColumnStats = {
+    columnId: string;
+    name: string;
+    outputType: OutputType;
+    filled: number;
+    noAnswer: number;
+    error: number;
+    notExtracted: number;
+    pending: number;
+    /** A value is present but does not read as the column's type ("n/a" in a number column). */
+    unreadable: number;
+    stale: number;
+    overridden: number;
+    /** number: numbers; date: `YYYY-MM-DD`. */
+    min?: number | string;
+    max?: number | string;
+    trueCount?: number;
+    falseCount?: number;
+    /** categorical / list_scalar: every value with how many rows hold it, declared categories
+     *  included at zero — the exact strings `is_any_of` compares against. Up to 50. */
+    values?: { value: string; rows: number }[];
+    distinctValues?: number;
+};
+
+export type TableStats = { rows: number; columns: ColumnStats[] };
 
 /**
  * A run has one terminal state a dataset job does not: CANCELED, written when someone stops the

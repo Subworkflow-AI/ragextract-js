@@ -1,5 +1,5 @@
 import { buildQuery, type ApiClient, type ApiResponse } from '../client';
-import type { Cell, CellValue, Column, OutputType, Row, Run, Table, TableQuery, TableQueryResult } from './types';
+import type { Cell, CellValue, Column, OutputType, Row, Run, Table, TableQuery, TableQueryResult, TableStats } from './types';
 
 type TableBundle = {
     table: Table;
@@ -153,6 +153,15 @@ export class V2TablesAPI {
         this.unwrap<TableQueryResult>(
             await this.api.$post(`${this.base}/${tableId}/query`, { json: query as never }),
         );
+
+    /**
+     * Per column: how many rows are filled, found no answer, errored or were never extracted; min
+     * and max for numbers and dates; and for a category or list column every value it holds with its
+     * row count — the exact strings `query()`'s `is_any_of` compares against. Read it before
+     * filtering on a category, rather than guessing a label. Free: no AI is called.
+     */
+    stats = async (tableId: string) =>
+        this.unwrap<TableStats>(await this.api.$get(`${this.base}/${tableId}/stats`));
 
     /**
      * Sets a human override. The AI value is kept alongside it, never overwritten, and a rerun will

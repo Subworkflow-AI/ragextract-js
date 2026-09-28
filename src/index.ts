@@ -33,6 +33,9 @@ export type {
     TableQueryCondition,
     TableQueryOperator,
     TableQueryResult,
+    TableQueryWarning,
+    TableStats,
+    ColumnStats,
     UndeterminedReason,
     Workspace,
 } from './lib/v2/types';

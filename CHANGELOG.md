@@ -15,6 +15,17 @@ silently dropped, so "three venues qualify" does not quietly mean "three, plus t
 about". Each returned cell's `value` is what a person sees, so a human correction wins; `overridden`
 says which. Each cell also carries the pages it cites.
 
+### `tables.stats()`, and query warnings
+
+`ws.tables.stats(tableId)` returns per-column counts over the whole table: filled, no answer,
+errored, not extracted, pending, stale, overridden; min/max for numbers and dates; and for a
+category or list column **every value it holds with its row count**. Those are the exact strings
+`query()`'s `is_any_of` compares against. Read them before filtering on a category.
+
+`query()` results gain `warnings`: a set condition naming a value the column never holds (`'MSc'` of
+a column that says `'Masters'`) is named, with the values the column does hold, instead of quietly
+returning fewer rows.
+
 ## 0.2.0 (2026-09-02)
 
 A minor rather than a patch: the `creditRate` range below is a breaking change, and under 0.x that
