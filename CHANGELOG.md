@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 (2026-09-28)
+
+A patch: everything below is additive. Under 0.x only a breaking change goes in the minor.
 
 ### `tables.query()` — which rows match, free
 
@@ -25,6 +27,14 @@ category or list column **every value it holds with its row count**. Those are t
 `query()` results gain `warnings`: a set condition naming a value the column never holds (`'MSc'` of
 a column that says `'Masters'`) is named, with the values the column does hold, instead of quietly
 returning fewer rows.
+
+### Fixed: what an image cell's value looks like
+
+`CellValue`'s comment said an image column answers with a bare `ImageRegion[]`. Reads have always
+returned `{ type, value }` with the regions as `value`, which is what the extraction engine writes.
+The comment now says so. `setOverride` still accepts the bare array on an image column. Before
+2026-09-27 the API stored it as sent, and the app read that override as **empty**; the API now wraps
+it. Overrides set that way before then may need setting again.
 
 ## 0.2.0 (2026-09-02)
 
